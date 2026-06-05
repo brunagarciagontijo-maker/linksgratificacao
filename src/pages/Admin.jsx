@@ -7,9 +7,11 @@ export default function Admin() {
   const navigate = useNavigate()
 
   const [usuarios, setUsuarios] = useState([])
+  const [search, setSearch] = useState("")
+  const [sortField, setSortField] = useState(null)
+  const [sortOrder, setSortOrder] = useState("asc")
 
   const [modalAberto, setModalAberto] = useState(false)
-
   const [editandoId, setEditandoId] = useState(null)
 
   const [nome, setNome] = useState('')
@@ -45,7 +47,6 @@ export default function Admin() {
     setLinkDuvidas('')
     setLinkProducao('')
     setEditandoId(null)
-
     setModalAberto(false)
   }
 
@@ -53,7 +54,6 @@ export default function Admin() {
     e.preventDefault()
 
     const cpfLimpo = cpf.replace(/\D/g, '')
-
     const senha = cpfLimpo.slice(-4)
 
     if (editandoId) {
@@ -115,10 +115,7 @@ export default function Admin() {
   }
 
   async function excluirUsuario(id) {
-    const confirmar = confirm(
-      'Deseja realmente excluir este usuário?'
-    )
-
+    const confirmar = confirm('Deseja realmente excluir este usuário?')
     if (!confirmar) return
 
     const { error } = await supabase
@@ -132,36 +129,51 @@ export default function Admin() {
     }
 
     alert('Usuário excluído')
-
     buscarUsuarios()
   }
 
   function logout() {
     localStorage.removeItem('usuario')
-
     navigate('/')
   }
 
-//que coisa do cão que é fazer uma página bonita, tá amarrado
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortOrder("asc")
+    }
+  }
+
+  const usuariosFiltrados = usuarios.filter((user) =>
+    user.nome.toLowerCase().includes(search.toLowerCase()) ||
+    user.cpf.includes(search)
+  )
+
+  const usuariosOrdenados = [...usuariosFiltrados].sort((a, b) => {
+    if (!sortField) return 0
+
+    const valueA = a[sortField]
+    const valueB = b[sortField]
+
+    if (valueA < valueB) return sortOrder === "asc" ? -1 : 1
+    if (valueA > valueB) return sortOrder === "asc" ? 1 : -1
+    return 0
+  })
 
   return (
     <div className="min-h-screen bg-[#f3f4f6]">
 
       <div className="border-b border-gray-300 bg-white shadow-sm">
-
         <div className="max-w-5xl mx-auto px-6 h-24 flex items-center justify-between">
 
-<div className="flex-1 text-center">
-
-  <h1 className="text-3xl font-black text-gray-800">
-    Painel Administrativo
-  </h1>
-
-  <p className="text-gray-500 mt-1"> 
-    Painel de usuários
-  </p>
-
-</div>
+          <div className="flex-1 text-center">
+            <h1 className="text-3xl font-black text-gray-800">
+              Painel Administrativo
+            </h1>
+            <p className="text-gray-500 mt-1">Painel de usuários</p>
+          </div>
 
           <button
             onClick={logout}
@@ -171,11 +183,9 @@ export default function Admin() {
           </button>
 
         </div>
-
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-10">
-
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
           <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
@@ -184,21 +194,30 @@ export default function Admin() {
               <h2 className="text-xl font-semibold text-gray-800">
                 Usuários cadastrados
               </h2>
-
               <p className="text-gray-500 mt-1">
                 Gerenciar cadastros
               </p>
             </div>
 
-            <button
-              onClick={() => {
-                limparFormulario()
-                setModalAberto(true)
-              }}
-              className="h-12 px-5 bg-gray-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all"
-            >
-              + Novo usuário
-            </button>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Buscar por nome ou CPF..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-12 px-4 rounded-xl border border-gray-200 outline-none"
+              />
+
+              <button
+                onClick={() => {
+                  limparFormulario()
+                  setModalAberto(true)
+                }}
+                className="h-12 px-5 bg-gray-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all"
+              >
+                + Novo usuário
+              </button>
+            </div>
 
           </div>
 
@@ -207,51 +226,44 @@ export default function Admin() {
             <table className="w-full text-sm">
 
               <thead className="bg-gray-50">
-
                 <tr>
-
-                  <th className="text-left px-8 py-4 text-sm font-bold text-gray-500">
-                    Nome
+                  <th onClick={() => handleSort("nome")} className="text-left px-8 py-4 font-bold text-gray-500 cursor-pointer">
+                    Nome {sortField === "nome" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
                   </th>
 
-                  <th className="text-left px-6 py-4 text-sm font-bold text-gray-500">
-                    CPF
+                  <th onClick={() => handleSort("cpf")} className="text-left px-6 py-4 font-bold text-gray-500 cursor-pointer">
+                    CPF {sortField === "cpf" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
                   </th>
 
-                  <th className="text-left px-6 py-4 text-sm font-bold text-gray-500">
+                  <th className="text-left px-6 py-4 font-bold text-gray-500">
                     Senha
                   </th>
 
-                  <th className="text-left px-6 py-4 text-sm font-bold text-gray-500">
-                    Tipo
+                  <th onClick={() => handleSort("tipo")} className="text-left px-6 py-4 font-bold text-gray-500 cursor-pointer">
+                    Tipo {sortField === "tipo" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
                   </th>
 
-                  <th className="text-left px-6 py-4 text-sm font-bold text-gray-500">
+                  <th className="text-left px-6 py-4 font-bold text-gray-500">
                     Produção
                   </th>
 
-                  <th className="text-right px-20 py-4 text-sm font-bold text-gray-500">
+                  <th className="text-right px-20 py-4 font-bold text-gray-500">
                     Ações
                   </th>
-
                 </tr>
-
               </thead>
 
               <tbody>
-
-                {usuarios.map((usuario) => (
+                {usuariosOrdenados.map((usuario) => (
                   <tr
                     key={usuario.id}
                     className="border-t border-gray-100 hover:bg-gray-50 transition-all"
                   >
 
                     <td className="px-8 py-5">
-
                       <p className="font-semibold text-gray-800">
                         {usuario.nome}
                       </p>
-
                     </td>
 
                     <td className="px-6 py-5 text-gray-600">
@@ -259,29 +271,22 @@ export default function Admin() {
                     </td>
 
                     <td className="px-6 py-5">
-
                       <div className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg inline-flex text-sm font-semibold">
                         {usuario.senha}
                       </div>
-
                     </td>
 
                     <td className="px-6 py-5">
-
-                      <div
-                        className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
-                          usuario.tipo === 'admin'
-                            ? 'bg-red-100 text-red-600'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
+                      <div className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
+                        usuario.tipo === 'admin'
+                          ? 'bg-red-100 text-red-600'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
                         {usuario.tipo}
                       </div>
-
                     </td>
 
                     <td className="px-6 py-5">
-
                       {usuario.link_producao ? (
                         <a
                           href={usuario.link_producao}
@@ -295,11 +300,9 @@ export default function Admin() {
                           Não informado
                         </span>
                       )}
-
                     </td>
 
                     <td className="px-8 py-5">
-
                       <div className="flex justify-end gap-3">
 
                         <button
@@ -317,12 +320,10 @@ export default function Admin() {
                         </button>
 
                       </div>
-
                     </td>
 
                   </tr>
                 ))}
-
               </tbody>
 
             </table>
@@ -330,23 +331,17 @@ export default function Admin() {
           </div>
 
         </div>
-
       </div>
 
       {modalAberto && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-
           <div className="w-full max-w-xl bg-white rounded-xl shadow-2xl p-8">
 
             <div className="flex items-center justify-between mb-8">
-
               <div>
                 <h2 className="text-3xl font-bold text-gray-800">
-                  {editandoId
-                    ? 'Editar usuário'
-                    : 'Novo usuário'}
+                  {editandoId ? 'Editar usuário' : 'Novo usuário'}
                 </h2>
-
                 <p className="text-gray-500 mt-1">
                   Preencha os dados abaixo
                 </p>
@@ -358,13 +353,9 @@ export default function Admin() {
               >
                 ✕
               </button>
-
             </div>
 
-            <form
-              onSubmit={cadastrarUsuario}
-              className="space-y-5"
-            >
+            <form onSubmit={cadastrarUsuario} className="space-y-5">
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -408,13 +399,8 @@ export default function Admin() {
                     onChange={(e) => setTipo(e.target.value)}
                     className="w-full h-14 px-5 rounded-2xl border border-gray-200 outline-none focus:border-red-500"
                   >
-                    <option value="comum">
-                      Usuário comum
-                    </option>
-
-                    <option value="admin">
-                      Admin
-                    </option>
+                    <option value="comum">Usuário comum</option>
+                    <option value="admin">Admin</option>
                   </select>
                 </div>
 
@@ -452,15 +438,12 @@ export default function Admin() {
                 type="submit"
                 className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all"
               >
-                {editandoId
-                  ? 'Atualizar usuário'
-                  : 'Cadastrar usuário'}
+                {editandoId ? 'Atualizar usuário' : 'Cadastrar usuário'}
               </button>
 
             </form>
 
           </div>
-
         </div>
       )}
 
